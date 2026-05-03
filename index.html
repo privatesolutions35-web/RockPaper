@@ -1,0 +1,2537 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical RPS</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a1a;
+            --neon-orange: #ff6b2c;
+            --neon-cyan: #00f5d4;
+            --neon-lime: #7cff2c;
+            --neon-magenta: #ff2c8a;
+            --card-back: #1a1a3a;
+            --text-white: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-white);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Main Menu */
+        #menuScreen {
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(255, 107, 44, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(0, 245, 212, 0.1) 0%, transparent 50%),
+                var(--bg-dark);
+        }
+
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--neon-orange), var(--neon-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 107, 44, 0.5);
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .subtitle {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-cyan);
+            letter-spacing: 8px;
+            margin-bottom: 60px;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .neon-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding: 20px 60px;
+            border: 3px solid var(--neon-lime);
+            background: transparent;
+            color: var(--neon-lime);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .neon-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(124, 255, 44, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .neon-btn:hover::before {
+            left: 100%;
+        }
+
+        .neon-btn:hover {
+            background: rgba(124, 255, 44, 0.1);
+            box-shadow: 0 0 30px var(--neon-lime), inset 0 0 20px rgba(124, 255, 44, 0.1);
+            transform: scale(1.05);
+        }
+
+        .audio-controls {
+            margin-top: 40px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .audio-btn {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9rem;
+            padding: 10px 20px;
+            border: 2px solid var(--neon-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .audio-btn:hover {
+            background: rgba(0, 245, 212, 0.1);
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .mode-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-cyan);
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        /* Online Menu */
+        .online-options {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .join-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .code-input {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            padding: 15px 30px;
+            border: 2px solid var(--neon-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+            text-align: center;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            width: 200px;
+        }
+
+        .code-input::placeholder {
+            color: var(--neon-cyan);
+            opacity: 0.5;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .code-input:focus {
+            outline: none;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        /* Waiting Screen */
+        .waiting-text {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            color: var(--text-white);
+            margin-bottom: 20px;
+        }
+
+        .game-code {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--neon-lime);
+            text-shadow: 0 0 30px var(--neon-lime);
+            letter-spacing: 10px;
+            margin-bottom: 20px;
+        }
+
+        .waiting-subtext {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-cyan);
+            opacity: 0.7;
+            margin-bottom: 40px;
+        }
+
+        .connection-status {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            color: var(--neon-orange);
+            margin-bottom: 20px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Battle Screen */
+        #battleScreen {
+            background: var(--bg-dark);
+        }
+
+        .battle-top {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            align-items: flex-start;
+        }
+
+        .enemy-info {
+            text-align: left;
+        }
+
+        .enemy-label, .player-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--neon-magenta);
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--neon-magenta);
+        }
+
+        .score-display {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .round-display {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--neon-orange);
+            text-shadow: 0 0 15px var(--neon-orange);
+        }
+
+        .player-info {
+            text-align: right;
+        }
+
+        .player-label {
+            color: var(--neon-lime);
+            text-shadow: 0 0 10px var(--neon-lime);
+        }
+
+        .player-score {
+            color: var(--neon-lime);
+            text-shadow: 0 0 20px var(--neon-lime);
+        }
+
+        /* Cards */
+        .card-area {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 20px;
+        }
+
+        .enemy-cards {
+            left: 40px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .player-cards {
+            right: 40px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card {
+            width: 80px;
+            height: 120px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .card.face-down {
+            background: linear-gradient(135deg, var(--card-back), #2a2a5a);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 245, 212, 0.3);
+        }
+
+        .card.face-down::after {
+            content: '?';
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            color: var(--neon-cyan);
+            opacity: 0.5;
+        }
+
+        .card.rock {
+            background: linear-gradient(135deg, #3a3a5a, #2a2a4a);
+            border: 2px solid var(--neon-orange);
+            box-shadow: 0 0 20px rgba(255, 107, 44, 0.5);
+        }
+
+        .card.scissors {
+            background: linear-gradient(135deg, #3a3a5a, #2a2a4a);
+            border: 2px solid var(--neon-magenta);
+            box-shadow: 0 0 20px rgba(255, 44, 138, 0.5);
+        }
+
+        .card.paper {
+            background: linear-gradient(135deg, #3a3a5a, #2a2a4a);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.5);
+        }
+
+        .card.joker {
+            background: linear-gradient(135deg, #4a2a6a, #3a1a5a);
+            border: 2px solid var(--neon-lime);
+            box-shadow: 0 0 20px rgba(124, 255, 44, 0.5);
+            animation: jokerGlow 1s ease-in-out infinite;
+        }
+
+        @keyframes jokerGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(124, 255, 44, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(124, 255, 44, 0.8); }
+        }
+
+        .card-icon {
+            font-size: 2rem;
+        }
+
+        .card.rock .card-icon { color: var(--neon-orange); }
+        .card.scissors .card-icon { color: var(--neon-magenta); }
+        .card.paper .card-icon { color: var(--neon-cyan); }
+        .card.joker .card-icon { color: var(--neon-lime); }
+
+        .card.played {
+            animation: cardPlay 0.5s ease-out forwards;
+        }
+
+        @keyframes cardPlay {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Center collision zone */
+        .collision-zone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .collision-card {
+            width: 120px;
+            height: 170px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .collision-card.visible {
+            opacity: 1;
+        }
+
+        .collision-card .card-icon {
+            font-size: 3.5rem;
+        }
+
+        .collision-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            opacity: 0.7;
+        }
+
+        .vs-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            color: var(--neon-orange);
+            text-shadow: 0 0 20px var(--neon-orange);
+        }
+
+        /* Player hand */
+        .player-hand {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            perspective: 1000px;
+        }
+
+        .hand-card {
+            width: 90px;
+            height: 130px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform: rotate(var(--rotation, 0deg)) translateY(var(--translateY, 0));
+        }
+
+        .hand-card:hover:not(.disabled) {
+            transform: rotate(var(--rotation, 0deg)) translateY(-30px) scale(1.1);
+            z-index: 10;
+        }
+
+        .hand-card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .hand-card.p2-hand {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 15px rgba(255, 44, 138, 0.3);
+        }
+
+        .hand-card.p2-hand:hover:not(.disabled) {
+            box-shadow: 0 0 30px var(--neon-magenta);
+        }
+
+        .hand-card .card-icon {
+            font-size: 2.5rem;
+        }
+
+        .hand-card .card-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        /* Scouting button */
+        .scout-btn {
+            position: absolute;
+            bottom: 180px;
+            right: 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            padding: 15px 25px;
+            border: 2px solid var(--neon-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .scout-btn:hover:not(:disabled) {
+            background: rgba(0, 245, 212, 0.1);
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .scout-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .game-actions {
+            position: absolute;
+            bottom: 180px;
+            left: 40px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            padding: 12px 18px;
+            border: 2px solid;
+            background: transparent;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .quit-btn {
+            border-color: var(--neon-magenta);
+            color: var(--neon-magenta);
+        }
+
+        .quit-btn:hover {
+            background: rgba(255, 44, 138, 0.1);
+            box-shadow: 0 0 15px var(--neon-magenta);
+        }
+
+        .reshuffle-btn {
+            border-color: var(--neon-orange);
+            color: var(--neon-orange);
+        }
+
+        .reshuffle-btn:hover:not(:disabled) {
+            background: rgba(255, 107, 44, 0.1);
+            box-shadow: 0 0 15px var(--neon-orange);
+        }
+
+        .reshuffle-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .p2-actions {
+            position: absolute;
+            bottom: 180px;
+            left: 40px;
+            display: none;
+            gap: 15px;
+        }
+
+        .p2-actions.visible {
+            display: flex;
+        }
+
+        .p2-scout {
+            display: none;
+        }
+
+        .p2-scout.visible {
+            display: block;
+        }
+
+        /* Result display */
+        .result-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 60px);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .result-display.visible {
+            opacity: 1;
+        }
+
+        .result-display.win {
+            color: var(--neon-lime);
+            text-shadow: 0 0 20px var(--neon-lime);
+        }
+
+        .result-display.lose {
+            color: var(--neon-magenta);
+            text-shadow: 0 0 20px var(--neon-magenta);
+        }
+
+        .result-display.draw {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .streak-bonus {
+            font-size: 1rem;
+            color: var(--neon-orange);
+            margin-top: 5px;
+        }
+
+        /* Scouting modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a3a, #0a0a2a);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 245, 212, 0.3);
+            animation: modalAppear 0.3s ease-out;
+        }
+
+        @keyframes modalAppear {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--neon-cyan);
+            margin-bottom: 30px;
+            text-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .scout-cards {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .scout-card {
+            width: 100px;
+            height: 140px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scout-card .card-icon {
+            font-size: 2.5rem;
+        }
+
+        .scout-close-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            padding: 12px 40px;
+            border: 2px solid var(--neon-orange);
+            background: transparent;
+            color: var(--neon-orange);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .scout-close-btn:hover {
+            background: rgba(255, 107, 44, 0.1);
+            box-shadow: 0 0 20px var(--neon-orange);
+        }
+
+        /* Joker selection modal */
+        .joker-modal .modal-content {
+            border-color: var(--neon-lime);
+            box-shadow: 0 0 40px rgba(124, 255, 44, 0.3);
+        }
+
+        .joker-modal .modal-title {
+            color: var(--neon-lime);
+            text-shadow: 0 0 15px var(--neon-lime);
+        }
+
+        .joker-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .joker-option {
+            width: 150px;
+            padding: 20px;
+            border: 2px solid var(--neon-lime);
+            background: transparent;
+            color: var(--neon-lime);
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .joker-option:hover {
+            background: rgba(124, 255, 44, 0.1);
+            box-shadow: 0 0 20px var(--neon-lime);
+        }
+
+        .joker-option h3 {
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .joker-option p {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* Risk strike prediction */
+        .risk-modal .modal-content {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 40px rgba(255, 44, 138, 0.3);
+        }
+
+        .risk-modal .modal-title {
+            color: var(--neon-magenta);
+            text-shadow: 0 0 15px var(--neon-magenta);
+        }
+
+        /* Rules Modal */
+        .rules-content {
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .rules-text {
+            text-align: left;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-white);
+            margin-bottom: 20px;
+        }
+
+        .rules-text p {
+            margin-bottom: 12px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .rules-text strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .prediction-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .predict-btn {
+            width: 80px;
+            height: 100px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            border: 2px solid;
+        }
+
+        .predict-btn.rock {
+            border-color: var(--neon-orange);
+            color: var(--neon-orange);
+        }
+        .predict-btn.scissors {
+            border-color: var(--neon-magenta);
+            color: var(--neon-magenta);
+        }
+        .predict-btn.paper {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .predict-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .predict-btn .card-icon {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        /* Game Over Screen */
+        #gameOverScreen {
+            background: 
+                radial-gradient(ellipse at 50% 50%, rgba(124, 255, 44, 0.1) 0%, transparent 50%),
+                var(--bg-dark);
+        }
+
+        .game-over-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px;
+        }
+
+        .game-over-title.victory {
+            color: var(--neon-lime);
+        }
+
+        .game-over-title.defeat {
+            color: var(--neon-magenta);
+        }
+
+        .game-over-title.draw {
+            color: var(--neon-cyan);
+        }
+
+        .final-score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 40px;
+        }
+
+        .final-score .player-final {
+            color: var(--neon-lime);
+        }
+
+        .final-score .separator {
+            color: var(--neon-orange);
+            margin: 0 20px;
+        }
+
+        .final-score .enemy-final {
+            color: var(--neon-magenta);
+        }
+
+        /* Glitch effect */
+        .glitch {
+            animation: glitch 0.3s ease-in-out;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); filter: hue-rotate(0deg); }
+            20% { transform: translate(-5px, 5px); filter: hue-rotate(90deg); }
+            40% { transform: translate(5px, -5px); filter: hue-rotate(180deg); }
+            60% { transform: translate(-5px, -5px); filter: hue-rotate(270deg); }
+            80% { transform: translate(5px, 5px); filter: hue-rotate(360deg); }
+            100% { transform: translate(0); filter: hue-rotate(0deg); }
+        }
+
+        /* Flash effect */
+        .flash {
+            animation: flashAnim 0.5s ease-out;
+        }
+
+        @keyframes flashAnim {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(2); }
+            100% { filter: brightness(1); }
+        }
+
+        .flash-win {
+            animation: flashWin 0.6s ease-out;
+        }
+
+        @keyframes flashWin {
+            0% { box-shadow: 0 0 0 rgba(124, 255, 44, 0); }
+            50% { box-shadow: 0 0 100px 50px rgba(124, 255, 44, 0.8); }
+            100% { box-shadow: 0 0 0 rgba(124, 255, 44, 0); }
+        }
+
+        .flash-lose {
+            animation: flashLose 0.6s ease-out;
+        }
+
+        @keyframes flashLose {
+            0% { box-shadow: 0 0 0 rgba(255, 44, 138, 0); }
+            50% { box-shadow: 0 0 100px 50px rgba(255, 44, 138, 0.8); }
+            100% { box-shadow: 0 0 0 rgba(255, 44, 138, 0); }
+        }
+
+        /* Shake effect */
+        .shake {
+            animation: shakeAnim 0.5s ease-in-out;
+        }
+
+        @keyframes shakeAnim {
+            0%, 100% { transform: translate(0, 0) rotate(0); }
+            10% { transform: translate(-10px, -10px) rotate(-5deg); }
+            20% { transform: translate(10px, 10px) rotate(5deg); }
+            30% { transform: translate(-10px, 10px) rotate(-5deg); }
+            40% { transform: translate(10px, -10px) rotate(5deg); }
+            50% { transform: translate(-5px, 5px) rotate(-3deg); }
+            60% { transform: translate(5px, -5px) rotate(3deg); }
+            70% { transform: translate(-5px, -5px) rotate(-2deg); }
+            80% { transform: translate(5px, 5px) rotate(2deg); }
+            90% { transform: translate(-2px, 2px) rotate(-1deg); }
+        }
+
+        /* Explosion effect */
+        .explosion {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .explosion-ring {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 4px solid var(--neon-orange);
+            animation: explosionRing 0.6s ease-out forwards;
+        }
+
+        @keyframes explosionRing {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; border-width: 10px; }
+            100% { transform: translate(-50%, -50%) scale(3); opacity: 0; border-width: 0; }
+        }
+
+        /* Particles */
+        .particles-container {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: particleFly 1s ease-out forwards;
+        }
+
+        @keyframes particleFly {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        /* Streak indicator */
+        .streak-indicator {
+            position: absolute;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-orange);
+            text-shadow: 0 0 15px var(--neon-orange);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .streak-indicator.visible {
+            opacity: 1;
+            animation: streakPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes streakPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        .turn-indicator {
+            position: absolute;
+            top: 170px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            padding: 10px 30px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            z-index: 10;
+            display: none;
+        }
+
+        .turn-indicator.player1-turn {
+            display: block;
+            color: var(--neon-lime);
+            border: 2px solid var(--neon-lime);
+            box-shadow: 0 0 20px var(--neon-lime);
+            animation: turnPulse 1s ease-in-out infinite;
+        }
+
+        .turn-indicator.player2-turn {
+            display: block;
+            color: var(--neon-magenta);
+            border: 2px solid var(--neon-magenta);
+            box-shadow: 0 0 20px var(--neon-magenta);
+            animation: turnPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes turnPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+
+        .p2-actions {
+            position: absolute;
+            bottom: 180px;
+            left: 40px;
+            display: none;
+            gap: 15px;
+        }
+
+        .p2-actions.visible {
+            display: flex;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .title { font-size: 2rem; }
+            .subtitle { font-size: 0.8rem; letter-spacing: 4px; }
+            .card { width: 60px; height: 90px; }
+            .hand-card { width: 60px; height: 90px; }
+            .hand-card .card-icon { font-size: 1.5rem; }
+            .collision-card { width: 80px; height: 120px; }
+            .collision-card .card-icon { font-size: 2rem; }
+            .player-hand { gap: 5px; }
+            .battle-top { padding: 0 20px; }
+            .score-display { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Elements -->
+    <audio id="bgMusic" loop preload="auto">
+        <source src="public/audio/Wanted(chosic.com).mp3" type="audio/mp3">
+    </audio>
+    <audio id="cardDealSound" preload="auto">
+        <source src="public/audio/mb_card_deal_08.mp3" type="audio/mp3">
+    </audio>
+    <audio id="winSound" preload="auto">
+        <source src="public/audio/9f3d770d1446e6c.mp3" type="audio/mp3">
+    </audio>
+    <audio id="loseSound" preload="auto">
+        <source src="public/audio/e51334ae4586a7f.mp3" type="audio/mp3">
+    </audio>
+    <audio id="drawSound" preload="auto">
+        <source src="public/audio/75dff623679a9db.mp3" type="audio/mp3">
+    </audio>
+    <audio id="victoryMusic" preload="auto">
+        <source src="public/audio/cfd4efb4aeece3f.mp3" type="audio/mp3">
+    </audio>
+    <audio id="defeatMusic" preload="auto">
+        <source src="public/audio/You perished.mp3" type="audio/mp3">
+    </audio>
+
+    <div id="gameContainer">
+        <!-- Main Menu -->
+        <div id="menuScreen" class="screen active">
+            <h1 class="title">RPS</h1>
+            <p class="subtitle">Tactical Battle</p>
+            <p class="mode-label">SELECT MODE</p>
+            <button class="neon-btn" onclick="startGame('bot')">🤖 VS BOT</button>
+            <button class="neon-btn" onclick="showOnlineMenu()" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">🌐 ONLINE</button>
+            <button class="neon-btn" onclick="showRules()" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">📖 RULES</button>
+            <div class="audio-controls">
+                <button class="audio-btn" id="musicToggle" onclick="toggleMusic()">🎵 MUSIC: ON</button>
+                <button class="audio-btn" id="soundToggle" onclick="toggleSound()">🔊 SOUND: ON</button>
+            </div>
+        </div>
+
+        <!-- Online Menu -->
+        <div id="onlineMenu" class="screen">
+            <h1 class="title">ONLINE</h1>
+            <p class="subtitle">Connect to Game</p>
+            <div class="online-options">
+                <button class="neon-btn" onclick="createOnlineGame()">CREATE GAME</button>
+                <div class="join-section">
+                    <input type="text" id="gameCodeInput" class="code-input" placeholder="Enter game code" maxlength="6">
+                    <button class="neon-btn" onclick="joinOnlineGame()" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">JOIN</button>
+                </div>
+                <button class="neon-btn" onclick="backToMenu()" style="border-color: var(--neon-cyan); color: var(--neon-cyan); margin-top: 20px;">BACK</button>
+            </div>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div id="waitingScreen" class="screen">
+            <h1 class="title">WAITING</h1>
+            <p class="waiting-text" id="waitingText">Game Code:</p>
+            <p class="game-code" id="gameCode">------</p>
+            <p class="waiting-subtext">Share this code with a friend</p>
+            <button class="neon-btn" onclick="cancelOnline()" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">CANCEL</button>
+        </div>
+
+        <!-- Battle Screen -->
+        <div id="battleScreen" class="screen">
+            <div class="battle-top">
+                <div class="enemy-info">
+                    <p class="enemy-label">ENEMY</p>
+                    <p class="score-display" id="enemyScore">0</p>
+                </div>
+                <div class="round-display">
+                    <span>ROUND </span>
+                    <span id="roundNumber">1</span>
+                    <span>/10</span>
+                </div>
+                <div class="player-info">
+                    <p class="player-label">YOU</p>
+                    <p class="score-display player-score" id="playerScore">0</p>
+                </div>
+            </div>
+
+            <div class="streak-indicator" id="streakIndicator">🔥 STREAK: 2 WINS!</div>
+            <div class="turn-indicator" id="turnIndicator"></div>
+
+            <div class="collision-zone" id="collisionZone">
+                <div class="collision-card" id="enemyCollisionCard"></div>
+                <span class="vs-text">VS</span>
+                <div class="collision-card" id="playerCollisionCard"></div>
+            </div>
+
+            <div class="result-display" id="resultDisplay">
+                <div class="result-text"></div>
+                <div class="streak-bonus"></div>
+            </div>
+
+            <button class="scout-btn" id="scoutBtn" onclick="activateScouting()">
+                👁 SCOUT
+            </button>
+
+            <div class="game-actions">
+                <button class="action-btn quit-btn" id="quitBtn" onclick="quitBattle()">
+                    ✖ QUIT
+                </button>
+                <button class="action-btn reshuffle-btn" id="reshuffleBtn" onclick="reshuffleDeck()">
+                    🔄 RESHUFFLE
+                </button>
+            </div>
+
+            <div class="p2-actions" id="p2Actions">
+                <button class="action-btn quit-btn" onclick="quitBattle()">
+                    ✖ QUIT
+                </button>
+                <button class="action-btn reshuffle-btn" id="p2ReshuffleBtn" onclick="reshuffleDeckP2()">
+                    🔄 RESHUFFLE
+                </button>
+            </div>
+
+            <button class="scout-btn p2-scout" id="p2ScoutBtn" onclick="activateScoutingP2()" style="display: none;">
+                👁 SCOUT
+            </button>
+
+            <div class="player-hand" id="playerHand"></div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="screen">
+            <h1 class="game-over-title" id="gameOverTitle">VICTORY</h1>
+            <div class="final-score">
+                <span class="player-final" id="finalPlayerScore">0</span>
+                <span class="separator">:</span>
+                <span class="enemy-final" id="finalEnemyScore">0</span>
+            </div>
+            <button class="neon-btn" onclick="startGame()">REMATCH</button>
+            <button class="neon-btn" onclick="goToMenu()" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">MENU</button>
+        </div>
+
+        <!-- Scouting Modal -->
+        <div class="modal-overlay" id="scoutModal">
+            <div class="modal-content">
+                <h2 class="modal-title">📡 SCOUTING</h2>
+                <p style="margin-bottom: 20px; color: var(--neon-cyan);">Enemy cards:</p>
+                <div class="scout-cards" id="scoutCards"></div>
+                <button class="scout-close-btn" onclick="closeScoutModal()">GOT IT</button>
+            </div>
+        </div>
+
+        <!-- Joker Mode Selection Modal -->
+        <div class="modal-overlay joker-modal" id="jokerModal">
+            <div class="modal-content">
+                <h2 class="modal-title">🎭 JOKER</h2>
+                <p style="margin-bottom: 20px; color: var(--neon-lime);">Select mode:</p>
+                <div class="joker-options">
+                    <button class="joker-option" onclick="selectJokerMode('copycat')">
+                        <h3>COPYCAT</h3>
+                        <p>Copies enemy card<br>Guaranteed draw</p>
+                    </button>
+                    <button class="joker-option" onclick="selectJokerMode('risk')">
+                        <h3>RISK</h3>
+                        <p>Guess enemy card<br>+2 points if correct</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Strike Prediction Modal -->
+        <div class="modal-overlay risk-modal" id="riskModal">
+            <div class="modal-content">
+                <h2 class="modal-title">🎯 GUESS CARD</h2>
+                <p style="margin-bottom: 20px; color: var(--neon-magenta);">What did the enemy play?</p>
+                <div class="prediction-buttons">
+                    <button class="predict-btn rock" onclick="predictCard('rock')">
+                        <span class="card-icon">🪨</span>
+                        <span>ROCK</span>
+                    </button>
+                    <button class="predict-btn scissors" onclick="predictCard('scissors')">
+                        <span class="card-icon">✂️</span>
+                        <span>SCISSORS</span>
+                    </button>
+                    <button class="predict-btn paper" onclick="predictCard('paper')">
+                        <span class="card-icon">📄</span>
+                        <span>PAPER</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rules Modal -->
+        <div class="modal-overlay" id="rulesModal">
+            <div class="modal-content rules-content">
+                <h2 class="modal-title" style="color: var(--neon-cyan);">📖 GAME RULES</h2>
+                <div class="rules-text">
+                    <p><strong style="color: var(--neon-lime);">Goal:</strong> Score more points over 10 rounds</p>
+                    
+                    <p><strong style="color: var(--neon-orange);">🎴 Deck:</strong></p>
+                    <p>• 9 random cards (Rock, Scissors, Paper) + 1 Joker</p>
+                    <p>• 10 cards per player</p>
+                    
+                    <p><strong style="color: var(--neon-orange);">⚔️ Battle:</strong></p>
+                    <p>• Both players choose a card simultaneously</p>
+                    <p>• Rock > Scissors > Paper > Rock</p>
+                    <p>• Win: +1 point | Draw/Loss: 0 points</p>
+                    
+                    <p><strong style="color: var(--neon-orange);">🔥 Win Streak:</strong></p>
+                    <p>• 3 wins in a row gives +2 bonus points</p>
+                    
+                    <p><strong style="color: var(--neon-orange);">🎭 Joker (1 in deck):</strong></p>
+                    <p>• <strong>Copycat:</strong> Copies enemy card → guaranteed draw</p>
+                    <p>• <strong>Risk:</strong> Guess enemy card → +2 if correct, loss if wrong</p>
+                    <p>• <strong>Joker vs Joker:</strong> Both get 0 points + glitch effect</p>
+                    
+                    <p><strong style="color: var(--neon-orange);">👁 Scouting (1 per game):</strong></p>
+                    <p>• Shows 3 random enemy cards</p>
+                    <p>• Cannot attack that round (defense only)</p>
+                </div>
+                <button class="scout-close-btn" onclick="closeRules()">GOT IT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CARD_TYPES = ['rock', 'scissors', 'paper'];
+        const CARD_ICONS = { rock: '🪨', scissors: '✂️', paper: '📄', joker: '🎭' };
+        const CARD_LABELS = { rock: 'ROCK', scissors: 'SCISSORS', paper: 'PAPER', joker: 'JOKER' };
+
+        let playerDeck = [];
+        let enemyDeck = [];
+        let playerHand = [];
+        let enemyHand = [];
+        let playerScore = 0;
+        let enemyScore = 0;
+        let currentRound = 1;
+        let playerStreak = 0;
+        let enemyStreak = 0;
+        let scoutingUsed = false;
+        let reshuffleUsed = false;
+        let selectedCardIndex = null;
+        let isProcessing = false;
+        let currentJokerIndex = null;
+        let gameMode = 'bot';
+        let currentTurn = 1;
+        let p2ScoutingUsed = false;
+        let p2ReshuffleUsed = false;
+        
+        // Online multiplayer
+        let peer = null;
+        let conn = null;
+        let isHost = false;
+        let onlinePlayerId = null;
+        let connectionStatus = '';
+
+        function generateDeck() {
+            const deck = [];
+            for (let i = 0; i < 9; i++) {
+                deck.push(CARD_TYPES[Math.floor(Math.random() * 3)]);
+            }
+            deck.push('joker');
+            return shuffleArray(deck);
+        }
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function showRules() {
+            document.getElementById('rulesModal').classList.add('active');
+        }
+
+        function closeRules() {
+            document.getElementById('rulesModal').classList.remove('active');
+        }
+
+        // Online Multiplayer Functions
+        function showOnlineMenu() {
+            document.getElementById('menuScreen').classList.remove('active');
+            document.getElementById('onlineMenu').classList.add('active');
+        }
+
+        function backToMenu() {
+            document.getElementById('onlineMenu').classList.remove('active');
+            document.getElementById('waitingScreen').classList.remove('active');
+            document.getElementById('menuScreen').classList.add('active');
+        }
+
+        function generateGameCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function createOnlineGame() {
+            const gameCode = generateGameCode();
+            document.getElementById('onlineMenu').classList.remove('active');
+            document.getElementById('waitingScreen').classList.add('active');
+            document.getElementById('gameCode').textContent = gameCode;
+            document.getElementById('waitingText').textContent = 'Game Code:';
+            document.querySelector('.waiting-subtext').textContent = 'Share this code with a friend';
+            
+            isHost = true;
+            connectionStatus = 'creating';
+            
+            peer = new Peer('knb-' + gameCode, {
+                debug: 1
+            });
+            
+            peer.on('open', (id) => {
+                console.log('Created game with ID:', id);
+                connectionStatus = 'waiting';
+            });
+            
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupConnection();
+                document.querySelector('.waiting-subtext').textContent = 'Player connected! Starting game...';
+                connectionStatus = 'connected';
+            });
+            
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                alert('Connection error: ' + err.type);
+                cancelOnline();
+            });
+        }
+
+        function joinOnlineGame() {
+            const gameCode = document.getElementById('gameCodeInput').value.toUpperCase().trim();
+            if (gameCode.length !== 6) {
+                alert('Enter 6-character game code');
+                return;
+            }
+            
+            document.getElementById('onlineMenu').classList.remove('active');
+            document.getElementById('waitingScreen').classList.add('active');
+            document.getElementById('gameCode').textContent = gameCode;
+            document.getElementById('waitingText').textContent = 'Connecting to game...';
+            document.querySelector('.waiting-subtext').textContent = 'Code: ' + gameCode;
+            
+            isHost = false;
+            connectionStatus = 'connecting';
+            
+            peer = new Peer({
+                debug: 1
+            });
+            
+            peer.on('open', (id) => {
+                console.log('Connected to peer server, joining game:', 'knb-' + gameCode);
+                conn = peer.connect('knb-' + gameCode, {
+                    reliable: true
+                });
+                setupConnection();
+            });
+            
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                alert('Connection error: ' + err.type);
+                cancelOnline();
+            });
+        }
+
+        function setupConnection() {
+            conn.on('open', () => {
+                console.log('Connection established');
+                if (!isHost) {
+                    startOnlineGame(false);
+                }
+            });
+            
+            conn.on('data', (data) => {
+                handleOnlineMessage(data);
+            });
+            
+            conn.on('close', () => {
+                alert('Connection lost!');
+                cancelOnline();
+            });
+        }
+
+        function handleOnlineMessage(data) {
+            console.log('Received:', data);
+            
+            switch(data.type) {
+                case 'start':
+                    playerHand = data.playerHand;
+                    enemyHand = data.enemyHand;
+                    playerScore = 0;
+                    enemyScore = 0;
+                    currentRound = 1;
+                    currentTurn = 1;
+                    startOnlineGame(true);
+                    break;
+                    
+                case 'playCard':
+                    handleRemoteCardPlay(data.cardIndex, data.cardType);
+                    break;
+                    
+                case 'scouting':
+                    p2ScoutingUsed = true;
+                    updateUI();
+                    break;
+                    
+                case 'reshuffle':
+                    p2ReshuffleUsed = true;
+                    enemyHand = data.newHand;
+                    updateUI();
+                    break;
+                    
+                case 'score':
+                    playerScore = data.playerScore;
+                    enemyScore = data.enemyScore;
+                    currentRound = data.currentRound;
+                    currentTurn = data.currentTurn;
+                    playerHand = data.playerHand;
+                    enemyHand = data.enemyHand;
+                    playerStreak = data.playerStreak;
+                    enemyStreak = data.enemyStreak;
+                    p2ScoutingUsed = data.p2ScoutingUsed;
+                    p2ReshuffleUsed = data.p2ReshuffleUsed;
+                    updateUI();
+                    renderPlayerHand();
+                    break;
+                    
+                case 'gameOver':
+                    playerScore = data.playerScore;
+                    enemyScore = data.enemyScore;
+                    showGameOver();
+                    break;
+            }
+        }
+
+        function startOnlineGame(isClient) {
+            if (isHost) {
+                playerDeck = generateDeck();
+                enemyDeck = generateDeck();
+                playerHand = [...playerDeck];
+                enemyHand = [...enemyDeck];
+                
+                conn.send({
+                    type: 'start',
+                    playerHand: playerHand,
+                    enemyHand: enemyHand
+                });
+            }
+            
+            gameMode = 'online';
+            playerScore = 0;
+            enemyScore = 0;
+            currentRound = 1;
+            currentTurn = 1;
+            playerStreak = 0;
+            enemyStreak = 0;
+            scoutingUsed = false;
+            reshuffleUsed = false;
+            p2ScoutingUsed = false;
+            p2ReshuffleUsed = false;
+            selectedCardIndex = null;
+            isProcessing = false;
+            
+            document.getElementById('waitingScreen').classList.remove('active');
+            document.getElementById('battleScreen').classList.add('active');
+            
+            updateUI();
+            updateTurnIndicator();
+            renderPlayerHand();
+        }
+
+        function handleRemoteCardPlay(cardIndex, cardType) {
+            enemyHand.splice(cardIndex, 1);
+            isProcessing = false;
+            
+            if (gameMode === 'online' && currentTurn === 1) {
+                currentTurn = 2;
+                updateTurnIndicator();
+            }
+        }
+
+        function sendOnlineData(data) {
+            if (conn && conn.open) {
+                conn.send(data);
+            }
+        }
+
+        function cancelOnline() {
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            conn = null;
+            document.getElementById('waitingScreen').classList.remove('active');
+            document.getElementById('onlineMenu').classList.add('active');
+            document.getElementById('gameCodeInput').value = '';
+        }
+
+        // Override playRound for online
+        const originalPlayRound = playRound;
+        playRound = function(playerCardIndex) {
+            if (gameMode === 'online') {
+                playOnlineRound(playerCardIndex);
+            } else {
+                originalPlayRound(playerCardIndex);
+            }
+        };
+
+        function playOnlineRound(playerCardIndex) {
+            isProcessing = true;
+            playCardDeal();
+            const playerCard = playerHand[playerCardIndex];
+            const enemyCard = enemyHand[Math.floor(Math.random() * enemyHand.length)];
+
+            playerHand.splice(playerCardIndex, 1);
+            const enemyCardIndex = enemyHand.indexOf(enemyCard);
+            enemyHand.splice(enemyCardIndex, 1);
+
+            animateCards(playerCard, enemyCard, () => {
+                resolveOnlineRound(playerCard, enemyCard);
+            });
+        }
+
+        function resolveOnlineRound(playerCard, enemyCard) {
+            let playerWon = false;
+            let enemyWon = false;
+            let draw = false;
+            let bonusText = '';
+
+            if (playerCard === 'joker' && enemyCard === 'joker') {
+                draw = true;
+                document.getElementById('gameContainer').classList.add('glitch');
+                setTimeout(() => document.getElementById('gameContainer').classList.remove('glitch'), 300);
+            } else if (playerCard === enemyCard) {
+                draw = true;
+            } else if (
+                (playerCard === 'rock' && enemyCard === 'scissors') ||
+                (playerCard === 'scissors' && enemyCard === 'paper') ||
+                (playerCard === 'paper' && enemyCard === 'rock')
+            ) {
+                playerWon = true;
+                playerStreak++;
+                enemyStreak = 0;
+                playerScore += 1;
+                if (playerStreak === 3) {
+                    playerScore += 2;
+                    bonusText = '🎉 STREAK BONUS +2!';
+                    playerStreak = 0;
+                }
+            } else {
+                enemyWon = true;
+                enemyStreak++;
+                playerStreak = 0;
+                enemyScore += 1;
+                if (enemyStreak === 3) {
+                    enemyScore += 2;
+                    enemyStreak = 0;
+                }
+            }
+
+            if (draw) {
+                playDrawRound();
+            } else if (playerWon) {
+                playWinRound();
+            } else {
+                playLoseRound();
+            }
+
+            sendOnlineData({
+                type: 'score',
+                playerScore: playerScore,
+                enemyScore: enemyScore,
+                currentRound: currentRound,
+                currentTurn: currentTurn,
+                playerHand: playerHand,
+                enemyHand: enemyHand,
+                playerStreak: playerStreak,
+                enemyStreak: enemyStreak,
+                p2ScoutingUsed: p2ScoutingUsed,
+                p2ReshuffleUsed: p2ReshuffleUsed
+            });
+
+            endOnlineRound(draw, playerWon, enemyWon, bonusText);
+        }
+
+        function endOnlineRound(draw, playerWon, enemyWon, bonusText) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultText = resultDisplay.querySelector('.result-text');
+            const streakBonus = resultDisplay.querySelector('.streak-bonus');
+
+            resultDisplay.className = 'result-display visible';
+            
+            if (draw) {
+                resultDisplay.classList.add('draw');
+                resultText.textContent = 'DRAW';
+                streakBonus.textContent = '';
+            } else if (playerWon) {
+                resultDisplay.classList.add('win');
+                resultText.textContent = 'YOU WIN!';
+                streakBonus.textContent = bonusText;
+            } else {
+                resultDisplay.classList.add('lose');
+                resultText.textContent = 'DEFEAT';
+                streakBonus.textContent = '';
+            }
+
+            updateUI();
+
+            setTimeout(() => {
+                resultDisplay.classList.remove('visible');
+                
+                if (currentRound >= 10) {
+                    sendOnlineData({
+                        type: 'gameOver',
+                        playerScore: playerScore,
+                        enemyScore: enemyScore
+                    });
+                    showGameOver();
+                } else {
+                    currentRound++;
+                    selectedCardIndex = null;
+                    isProcessing = false;
+                    currentTurn = currentTurn === 1 ? 2 : 1;
+                    
+                    updateUI();
+                    updateTurnIndicator();
+                    renderPlayerHand();
+                    
+                    document.getElementById('playerCollisionCard').className = 'collision-card';
+                    document.getElementById('enemyCollisionCard').className = 'collision-card';
+                }
+            }, 2000);
+        }
+
+        function startGame(mode = 'bot') {
+            gameMode = mode;
+            playerDeck = generateDeck();
+            enemyDeck = generateDeck();
+            playerHand = [...playerDeck];
+            enemyHand = [...enemyDeck];
+            playerScore = 0;
+            enemyScore = 0;
+            currentRound = 1;
+            playerStreak = 0;
+            enemyStreak = 0;
+            scoutingUsed = false;
+            reshuffleUsed = false;
+            selectedCardIndex = null;
+            isProcessing = false;
+            currentTurn = 1;
+            p2ScoutingUsed = false;
+            p2ReshuffleUsed = false;
+
+            document.getElementById('menuScreen').classList.remove('active');
+            document.getElementById('gameOverScreen').classList.remove('active');
+            document.getElementById('battleScreen').classList.add('active');
+
+            updateUI();
+            renderPlayerHand();
+            updateTurnIndicator();
+        }
+
+        function updateUI() {
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('enemyScore').textContent = enemyScore;
+            document.getElementById('roundNumber').textContent = currentRound;
+            
+            if (gameMode === 'bot' || currentTurn === 1) {
+                document.getElementById('scoutBtn').disabled = scoutingUsed || isProcessing;
+                document.getElementById('reshuffleBtn').disabled = reshuffleUsed || isProcessing || currentRound > 1;
+                document.getElementById('game-actions').style.display = 'flex';
+                document.getElementById('p2Actions').classList.remove('visible');
+                document.getElementById('p2ScoutBtn').classList.remove('visible');
+            } else {
+                document.getElementById('p2ScoutBtn').style.display = 'block';
+                document.getElementById('p2ScoutBtn').classList.add('visible');
+                document.getElementById('p2ScoutBtn').disabled = p2ScoutingUsed || isProcessing;
+                document.getElementById('p2ReshuffleBtn').disabled = p2ReshuffleUsed || isProcessing || currentRound > 1;
+                document.getElementById('game-actions').style.display = 'none';
+                document.getElementById('p2Actions').classList.add('visible');
+            }
+
+            const streakIndicator = document.getElementById('streakIndicator');
+            if (playerStreak >= 2) {
+                streakIndicator.textContent = `🔥 STREAK: ${playerStreak} WINS!`;
+                streakIndicator.classList.add('visible');
+            } else {
+                streakIndicator.classList.remove('visible');
+            }
+        }
+
+        function updateTurnIndicator() {
+            const turnIndicator = document.getElementById('turnIndicator');
+            if (gameMode === 'bot') {
+                turnIndicator.style.display = 'none';
+            } else {
+                if (currentTurn === 1) {
+                    turnIndicator.textContent = '🎮 PLAYER 1 TURN';
+                    turnIndicator.className = 'turn-indicator player1-turn';
+                } else {
+                    turnIndicator.textContent = '🎮 PLAYER 2 TURN';
+                    turnIndicator.className = 'turn-indicator player2-turn';
+                }
+            }
+        }
+
+        function quitBattle() {
+            if (isProcessing) return;
+            document.getElementById('battleScreen').classList.remove('active');
+            document.getElementById('menuScreen').classList.add('active');
+        }
+
+        function goToMenu() {
+            document.getElementById('gameOverScreen').classList.remove('active');
+            document.getElementById('menuScreen').classList.add('active');
+        }
+
+        function reshuffleDeck() {
+            if (reshuffleUsed || isProcessing || playerHand.length === 0) return;
+            if (currentRound > 1) return;
+            
+            reshuffleUsed = true;
+            playerDeck = generateDeck();
+            playerHand = [...playerDeck];
+            
+            updateUI();
+            renderPlayerHand();
+        }
+
+        function renderPlayerHand() {
+            const handContainer = document.getElementById('playerHand');
+            handContainer.innerHTML = '';
+
+            const isP1Turn = gameMode === 'bot' || currentTurn === 1;
+            const currentHand = isP1Turn ? playerHand : enemyHand;
+            const selectFn = isP1Turn ? selectCard : selectCardP2;
+            const cardClass = isP1Turn ? '' : 'p2-hand';
+
+            const centerIndex = Math.floor(currentHand.length / 2);
+            const maxRotation = 15;
+            const rotationStep = maxRotation / centerIndex;
+
+            currentHand.forEach((cardType, index) => {
+                const card = document.createElement('div');
+                card.className = `hand-card card ${cardType} ${cardClass}`;
+                
+                const rotation = (index - centerIndex) * rotationStep;
+                card.style.setProperty('--rotation', `${rotation}deg`);
+                
+                if (selectedCardIndex === index) {
+                    card.style.transform = `rotate(0deg) translateY(-40px) scale(1.15)`;
+                    card.style.boxShadow = `0 0 30px var(--neon-${isP1Turn ? 'lime' : 'magenta'})`;
+                }
+
+                card.innerHTML = `
+                    <span class="card-icon">${CARD_ICONS[cardType]}</span>
+                    <span class="card-label">${CARD_LABELS[cardType]}</span>
+                `;
+
+                card.onclick = () => selectFn(index);
+                handContainer.appendChild(card);
+            });
+        }
+
+        function selectCard(index) {
+            if (isProcessing || selectedCardIndex !== null) return;
+            
+            if (playerHand[index] === 'joker') {
+                selectedCardIndex = index;
+                renderPlayerHand();
+                document.getElementById('jokerModal').classList.add('active');
+                return;
+            }
+
+            selectedCardIndex = index;
+            renderPlayerHand();
+            playRound(index);
+        }
+
+        function selectCardP2(index) {
+            if (isProcessing || selectedCardIndex !== null) return;
+            
+            if (enemyHand[index] === 'joker') {
+                selectedCardIndex = index;
+                renderPlayerHand();
+                document.getElementById('jokerModal').classList.add('active');
+                return;
+            }
+
+            selectedCardIndex = index;
+            renderPlayerHand();
+            playRoundP2(index);
+        }
+
+        function playRound(playerCardIndex) {
+            isProcessing = true;
+            playCardDeal();
+            const playerCard = playerHand[playerCardIndex];
+            const enemyCard = selectEnemyCard();
+
+            playerHand.splice(playerCardIndex, 1);
+
+            const enemyCardIndex = enemyHand.indexOf(enemyCard);
+            enemyHand.splice(enemyCardIndex, 1);
+
+            animateCards(playerCard, enemyCard, () => {
+                resolveRound(playerCard, enemyCard);
+            });
+        }
+
+        function playRoundP2(playerCardIndex) {
+            isProcessing = true;
+            playCardDeal();
+            const player2Card = enemyHand[playerCardIndex];
+            const player1Card = playerHand[Math.floor(Math.random() * playerHand.length)];
+
+            enemyHand.splice(playerCardIndex, 1);
+
+            const p1CardIndex = playerHand.indexOf(player1Card);
+            playerHand.splice(p1CardIndex, 1);
+
+            animateCards(player2Card, player1Card, () => {
+                resolveMultiRound(player2Card, player1Card);
+            });
+        }
+
+        function selectEnemyCard() {
+            const remainingCards = [...enemyHand];
+            
+            if (remainingCards.includes('joker') && remainingCards.length <= 3) {
+                return 'joker';
+            }
+
+            if (playerHand.length > 0) {
+                const rockCount = playerHand.filter(c => c === 'rock').length;
+                const scissorsCount = playerHand.filter(c => c === 'scissors').length;
+                const paperCount = playerHand.filter(c => c === 'paper').length;
+
+                const maxType = 
+                    rockCount >= scissorsCount && rockCount >= paperCount ? 'rock' :
+                    scissorsCount >= rockCount && scissorsCount >= paperCount ? 'scissors' : 'paper';
+
+                const counterType = 
+                    maxType === 'rock' ? 'paper' :
+                    maxType === 'scissors' ? 'rock' : 'scissors';
+
+                const counterCards = remainingCards.filter(c => c === counterType);
+                if (counterCards.length > 0) {
+                    return counterType;
+                }
+            }
+
+            return remainingCards[Math.floor(Math.random() * remainingCards.length)];
+        }
+
+        function animateCards(playerCard, enemyCard, callback) {
+            const playerCollision = document.getElementById('playerCollisionCard');
+            const enemyCollision = document.getElementById('enemyCollisionCard');
+
+            playerCollision.className = `collision-card visible card ${playerCard}`;
+            playerCollision.innerHTML = `
+                <span class="card-icon">${CARD_ICONS[playerCard]}</span>
+                <span class="collision-label">${CARD_LABELS[playerCard]}</span>
+            `;
+
+            enemyCollision.className = `collision-card visible card ${enemyCard}`;
+            enemyCollision.innerHTML = `
+                <span class="card-icon">${CARD_ICONS[enemyCard]}</span>
+                <span class="collision-label">${CARD_LABELS[enemyCard]}</span>
+            `;
+
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2 - 50;
+            
+            setTimeout(() => {
+                playCardCollisionEffect(playerCard, enemyCard, centerX, centerY);
+            }, 800);
+
+            setTimeout(callback, 1500);
+        }
+
+        function resolveRound(playerCard, enemyCard) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultText = resultDisplay.querySelector('.result-text');
+            const streakBonus = resultDisplay.querySelector('.streak-bonus');
+
+            let playerWon = false;
+            let enemyWon = false;
+            let draw = false;
+            let bonusText = '';
+
+            if (playerCard === 'joker' && enemyCard === 'joker') {
+                draw = true;
+                document.getElementById('gameContainer').classList.add('glitch');
+                setTimeout(() => document.getElementById('gameContainer').classList.remove('glitch'), 300);
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2 - 50;
+                playShake(document.getElementById('gameContainer'));
+                playExplosion(centerX, centerY);
+                playParticles(centerX, centerY, 'var(--neon-magenta)', 40);
+            } else if (enemyCard === 'joker') {
+                // Enemy plays Joker - they choose randomly
+                const enemyJokerMode = Math.random() < 0.5 ? 'copycat' : 'risk';
+                if (enemyJokerMode === 'copycat') {
+                    draw = true;
+                } else {
+                    const prediction = CARD_TYPES[Math.floor(Math.random() * 3)];
+                    if (prediction === playerCard) {
+                        enemyScore += 2;
+                        enemyStreak++;
+                        playerStreak = 0;
+                    } else {
+                        enemyStreak = 0;
+                    }
+                    endRound(draw, playerWon, enemyWon, bonusText);
+                    return;
+                }
+            } else {
+                if (playerCard === enemyCard) {
+                    draw = true;
+                } else if (
+                    (playerCard === 'rock' && enemyCard === 'scissors') ||
+                    (playerCard === 'scissors' && enemyCard === 'paper') ||
+                    (playerCard === 'paper' && enemyCard === 'rock')
+                ) {
+                    playerWon = true;
+                    playerStreak++;
+                    enemyStreak = 0;
+                    
+                    if (playerStreak === 3) {
+                        playerScore += 2;
+                        bonusText = '🎉 STREAK BONUS +2!';
+                        playerStreak = 0;
+                    } else {
+                        playerScore += 1;
+                    }
+                } else {
+                    enemyWon = true;
+                    enemyStreak++;
+                    playerStreak = 0;
+                    
+                    if (enemyStreak === 3) {
+                        enemyScore += 2;
+                        enemyStreak = 0;
+                    } else {
+                        enemyScore += 1;
+                    }
+                }
+            }
+
+            endRound(draw, playerWon, enemyWon, bonusText);
+        }
+
+        function endRound(draw, playerWon, enemyWon, bonusText) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultText = resultDisplay.querySelector('.result-text');
+            const streakBonus = resultDisplay.querySelector('.streak-bonus');
+
+            resultDisplay.className = 'result-display visible';
+            
+            if (draw) {
+                resultDisplay.classList.add('draw');
+                resultText.textContent = 'DRAW';
+                streakBonus.textContent = '';
+                playDrawRound();
+            } else if (playerWon) {
+                resultDisplay.classList.add('win');
+                resultText.textContent = 'YOU WIN!';
+                streakBonus.textContent = bonusText;
+                playWinRound();
+            } else {
+                resultDisplay.classList.add('lose');
+                resultText.textContent = 'DEFEAT';
+                streakBonus.textContent = '';
+                playLoseRound();
+            }
+
+            updateUI();
+
+            setTimeout(() => {
+                resultDisplay.classList.remove('visible');
+                
+                if (currentRound >= 10) {
+                    showGameOver();
+                } else {
+                    currentRound++;
+                    selectedCardIndex = null;
+                    isProcessing = false;
+                    
+                    if (gameMode === 'multi') {
+                        currentTurn = currentTurn === 1 ? 2 : 1;
+                    }
+                    
+                    updateUI();
+                    updateTurnIndicator();
+                    renderPlayerHand();
+                    
+                    document.getElementById('playerCollisionCard').className = 'collision-card';
+                    document.getElementById('enemyCollisionCard').className = 'collision-card';
+                }
+            }, 2000);
+        }
+
+        function resolveMultiRound(p2Card, p1Card) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultText = resultDisplay.querySelector('.result-text');
+            const streakBonus = resultDisplay.querySelector('.streak-bonus');
+
+            let p1Won = false;
+            let p2Won = false;
+            let draw = false;
+            let bonusText = '';
+
+            if (p2Card === 'joker' && p1Card === 'joker') {
+                draw = true;
+                document.getElementById('gameContainer').classList.add('glitch');
+                setTimeout(() => document.getElementById('gameContainer').classList.remove('glitch'), 300);
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2 - 50;
+                playShake(document.getElementById('gameContainer'));
+                playExplosion(centerX, centerY);
+                playParticles(centerX, centerY, 'var(--neon-magenta)', 40);
+            } else if (p1Card === p2Card) {
+                draw = true;
+            } else if (
+                (p1Card === 'rock' && p2Card === 'scissors') ||
+                (p1Card === 'scissors' && p2Card === 'paper') ||
+                (p1Card === 'paper' && p2Card === 'rock')
+            ) {
+                p1Won = true;
+                playerScore += 1;
+                playerStreak++;
+                enemyStreak = 0;
+                
+                if (playerStreak === 3) {
+                    playerScore += 2;
+                    bonusText = '🎉 STREAK BONUS +2!';
+                    playerStreak = 0;
+                }
+            } else {
+                p2Won = true;
+                enemyScore += 1;
+                enemyStreak++;
+                playerStreak = 0;
+                
+                if (enemyStreak === 3) {
+                    enemyScore += 2;
+                    bonusText = '🎉 STREAK BONUS +2!';
+                    enemyStreak = 0;
+                }
+            }
+
+            endRoundMulti(draw, p1Won, p2Won, bonusText);
+        }
+
+        function endRoundMulti(draw, p1Won, p2Won, bonusText) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultText = resultDisplay.querySelector('.result-text');
+            const streakBonus = resultDisplay.querySelector('.streak-bonus');
+
+            resultDisplay.className = 'result-display visible';
+            
+            if (draw) {
+                resultDisplay.classList.add('draw');
+                resultText.textContent = 'DRAW';
+                streakBonus.textContent = '';
+                playDrawRound();
+            } else if (p1Won) {
+                resultDisplay.classList.add('win');
+                resultText.textContent = 'PLAYER 1 WINS!';
+                streakBonus.textContent = bonusText;
+                playWinRound();
+            } else {
+                resultDisplay.classList.add('lose');
+                resultText.textContent = 'PLAYER 2 WINS!';
+                streakBonus.textContent = bonusText;
+                playLoseRound();
+            }
+
+            updateUI();
+
+            setTimeout(() => {
+                resultDisplay.classList.remove('visible');
+                
+                if (currentRound >= 10) {
+                    showGameOver();
+                } else {
+                    currentRound++;
+                    selectedCardIndex = null;
+                    isProcessing = false;
+                    currentTurn = currentTurn === 1 ? 2 : 1;
+                    
+                    updateUI();
+                    updateTurnIndicator();
+                    renderPlayerHand();
+                    
+                    document.getElementById('playerCollisionCard').className = 'collision-card';
+                    document.getElementById('enemyCollisionCard').className = 'collision-card';
+                }
+            }, 2000);
+        }
+
+        function activateScouting() {
+            if (scoutingUsed || isProcessing) return;
+            
+            scoutingUsed = true;
+            document.getElementById('scoutBtn').disabled = true;
+
+            const scoutCardsContainer = document.getElementById('scoutCards');
+            scoutCardsContainer.innerHTML = '';
+
+            const availableCards = enemyHand.filter(c => c !== 'joker');
+            const sampleSize = Math.min(3, availableCards.length);
+            const sampled = [];
+            
+            for (let i = 0; i < sampleSize; i++) {
+                const randomIndex = Math.floor(Math.random() * availableCards.length);
+                sampled.push(availableCards[randomIndex]);
+                availableCards.splice(randomIndex, 1);
+            }
+
+            if (enemyHand.includes('joker') && sampled.length < 3) {
+                sampled.push('joker');
+            }
+
+            sampled.forEach(cardType => {
+                const card = document.createElement('div');
+                card.className = `scout-card card ${cardType}`;
+                card.innerHTML = `
+                    <span class="card-icon">${CARD_ICONS[cardType]}</span>
+                    <span style="font-size: 0.8rem; margin-top: 10px;">${CARD_LABELS[cardType]}</span>
+                `;
+                scoutCardsContainer.appendChild(card);
+            });
+
+            document.getElementById('scoutModal').classList.add('active');
+        }
+
+        function activateScoutingP2() {
+            if (p2ScoutingUsed || isProcessing) return;
+            
+            p2ScoutingUsed = true;
+            document.getElementById('p2ScoutBtn').disabled = true;
+
+            const scoutCardsContainer = document.getElementById('scoutCards');
+            scoutCardsContainer.innerHTML = '';
+
+            const availableCards = playerHand.filter(c => c !== 'joker');
+            const sampleSize = Math.min(3, availableCards.length);
+            const sampled = [];
+            
+            for (let i = 0; i < sampleSize; i++) {
+                const randomIndex = Math.floor(Math.random() * availableCards.length);
+                sampled.push(availableCards[randomIndex]);
+                availableCards.splice(randomIndex, 1);
+            }
+
+            if (playerHand.includes('joker') && sampled.length < 3) {
+                sampled.push('joker');
+            }
+
+            sampled.forEach(cardType => {
+                const card = document.createElement('div');
+                card.className = `scout-card card ${cardType}`;
+                card.innerHTML = `
+                    <span class="card-icon">${CARD_ICONS[cardType]}</span>
+                    <span style="font-size: 0.8rem; margin-top: 10px;">${CARD_LABELS[cardType]}</span>
+                `;
+                scoutCardsContainer.appendChild(card);
+            });
+
+            document.getElementById('scoutModal').classList.add('active');
+        }
+
+        function reshuffleDeckP2() {
+            if (p2ReshuffleUsed || isProcessing || enemyHand.length === 0) return;
+            if (currentRound > 1) return;
+            
+            p2ReshuffleUsed = true;
+            enemyDeck = generateDeck();
+            enemyHand = [...enemyDeck];
+            
+            updateUI();
+        }
+
+        function closeScoutModal() {
+            document.getElementById('scoutModal').classList.remove('active');
+        }
+
+        function selectJokerMode(mode) {
+            document.getElementById('jokerModal').classList.remove('active');
+            
+            if (mode === 'copycat') {
+                playJokerRound('copycat');
+            } else {
+                document.getElementById('riskModal').classList.add('active');
+            }
+        }
+
+        function predictCard(prediction) {
+            document.getElementById('riskModal').classList.remove('active');
+            playJokerRound('risk', prediction);
+        }
+
+        function playJokerRound(mode, prediction = null) {
+            playCardDeal();
+            const playerCard = playerHand[selectedCardIndex];
+            playerHand.splice(selectedCardIndex, 1);
+
+            const enemyCard = selectEnemyCard();
+            const enemyCardIndex = enemyHand.indexOf(enemyCard);
+            enemyHand.splice(enemyCardIndex, 1);
+
+            const playerDisplayCard = mode === 'copycat' ? enemyCard : 'joker';
+
+            animateCards(playerDisplayCard, enemyCard, () => {
+                if (mode === 'copycat') {
+                    // Guaranteed draw
+                    const resultDisplay = document.getElementById('resultDisplay');
+                    resultDisplay.className = 'result-display visible draw';
+                    resultDisplay.querySelector('.result-text').textContent = 'DRAW (COPYCAT)';
+                    resultDisplay.querySelector('.streak-bonus').textContent = '';
+                    playDrawRound();
+                    
+                    finishJokerRound(true, false, false, '');
+                } else {
+                    // Risk mode
+                    document.getElementById('gameContainer').classList.add('glitch');
+                    setTimeout(() => document.getElementById('gameContainer').classList.remove('glitch'), 300);
+
+                    if (prediction === enemyCard) {
+                        playerScore += 2;
+                        playerStreak++;
+                        enemyStreak = 0;
+                        
+                        if (playerStreak >= 3) {
+                            playerStreak = 0;
+                        }
+                        playWinRound();
+                        finishJokerRound(false, true, false, '🎯 EXACT! +2');
+                    } else {
+                        enemyScore += 1;
+                        enemyStreak++;
+                        playerStreak = 0;
+                        
+                        if (enemyStreak >= 3) {
+                            enemyScore += 1;
+                            enemyStreak = 0;
+                        }
+                        playLoseRound();
+                        finishJokerRound(false, false, true, '❌ WRONG!');
+                    }
+                }
+            });
+        }
+
+        function finishJokerRound(draw, playerWon, enemyWon, bonusText) {
+            updateUI();
+            
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultText = resultDisplay.querySelector('.result-text');
+            const streakBonus = resultDisplay.querySelector('.streak-bonus');
+
+            setTimeout(() => {
+                resultDisplay.classList.remove('visible');
+                
+                if (currentRound >= 10) {
+                    showGameOver();
+                } else {
+                    currentRound++;
+                    selectedCardIndex = null;
+                    isProcessing = false;
+                    updateUI();
+                    renderPlayerHand();
+                    
+                    document.getElementById('playerCollisionCard').className = 'collision-card';
+                    document.getElementById('enemyCollisionCard').className = 'collision-card';
+                }
+            }, 2000);
+        }
+
+        function showGameOver() {
+            document.getElementById('bgMusic').pause();
+            document.getElementById('battleScreen').classList.remove('active');
+            document.getElementById('gameOverScreen').classList.add('active');
+
+            const title = document.getElementById('gameOverTitle');
+            title.className = 'game-over-title';
+
+            if (playerScore > enemyScore) {
+                title.textContent = 'VICTORY!';
+                title.classList.add('victory');
+                setTimeout(() => playVictory(), 500);
+            } else if (playerScore < enemyScore) {
+                title.textContent = 'DEFEAT';
+                title.classList.add('defeat');
+                setTimeout(() => playDefeat(), 500);
+            } else {
+                title.textContent = 'DRAW';
+                title.classList.add('draw');
+                setTimeout(() => playDefeat(), 500);
+            }
+
+            document.getElementById('finalPlayerScore').textContent = playerScore;
+            document.getElementById('finalEnemyScore').textContent = enemyScore;
+        }
+
+        // Audio Functions
+        let musicEnabled = true;
+        let soundEnabled = true;
+
+        function playSound(soundId) {
+            if (!soundEnabled) return;
+            const sound = document.getElementById(soundId);
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(() => {});
+            }
+        }
+
+        function playCardDeal() {
+            playSound('cardDealSound');
+        }
+
+        function playWinRound() {
+            playSound('winSound');
+        }
+
+        function playLoseRound() {
+            playSound('loseSound');
+        }
+
+        function playDrawRound() {
+            playSound('drawSound');
+        }
+
+        function playVictory() {
+            playSound('victoryMusic');
+        }
+
+        function playDefeat() {
+            playSound('defeatMusic');
+        }
+
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            const bgMusic = document.getElementById('bgMusic');
+            if (musicEnabled) {
+                bgMusic.play().catch(() => {});
+            } else {
+                bgMusic.pause();
+            }
+            document.getElementById('musicToggle').textContent = musicEnabled ? '🎵 MUSIC: ON' : '🎵 MUSIC: OFF';
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundToggle').textContent = soundEnabled ? '🔊 SOUND: ON' : '🔊 SOUND: OFF';
+        }
+
+        // Start background music when game starts
+        const originalStartGame = startGame;
+        startGame = function() {
+            originalStartGame();
+            if (musicEnabled) {
+                const bgMusic = document.getElementById('bgMusic');
+                bgMusic.currentTime = 0;
+                bgMusic.play().catch(() => {});
+            }
+        };
+
+        // Stop music on menu
+        const originalQuitBattle = quitBattle;
+        quitBattle = function() {
+            originalQuitBattle();
+            document.getElementById('bgMusic').pause();
+        };
+
+        const originalGoToMenu = goToMenu;
+        goToMenu = function() {
+            originalGoToMenu();
+            document.getElementById('bgMusic').pause();
+            document.getElementById('victoryMusic').pause();
+            document.getElementById('defeatMusic').pause();
+        };
+
+        // Visual Effects
+        function playFlash(element, type) {
+            element.classList.add(type === 'win' ? 'flash-win' : type === 'lose' ? 'flash-lose' : 'flash');
+            setTimeout(() => {
+                element.classList.remove('flash-win', 'flash-lose', 'flash');
+            }, 600);
+        }
+
+        function playShake(element) {
+            element.classList.add('shake');
+            setTimeout(() => element.classList.remove('shake'), 500);
+        }
+
+        function playExplosion(x, y) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = x + 'px';
+            explosion.style.top = y + 'px';
+            
+            const ring = document.createElement('div');
+            ring.className = 'explosion-ring';
+            explosion.appendChild(ring);
+            
+            document.body.appendChild(explosion);
+            setTimeout(() => explosion.remove(), 600);
+        }
+
+        function playParticles(x, y, color, count = 20) {
+            const container = document.createElement('div');
+            container.className = 'particles-container';
+            container.style.left = x + 'px';
+            container.style.top = y + 'px';
+            
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const angle = (Math.PI * 2 * i) / count;
+                const distance = 100 + Math.random() * 150;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                particle.style.setProperty('--tx', tx + 'px');
+                particle.style.setProperty('--ty', ty + 'px');
+                particle.style.background = color;
+                particle.style.animationDelay = (Math.random() * 0.2) + 's';
+                container.appendChild(particle);
+            }
+            
+            document.body.appendChild(container);
+            setTimeout(() => container.remove(), 1200);
+        }
+
+        function playCardCollisionEffect(playerCard, enemyCard, centerX, centerY) {
+            const colors = {
+                win: 'var(--neon-lime)',
+                lose: 'var(--neon-magenta)',
+                draw: 'var(--neon-cyan)'
+            };
+            
+            let result = 'draw';
+            if (playerCard !== enemyCard) {
+                if ((playerCard === 'rock' && enemyCard === 'scissors') ||
+                    (playerCard === 'scissors' && enemyCard === 'paper') ||
+                    (playerCard === 'paper' && enemyCard === 'rock')) {
+                    result = 'win';
+                } else {
+                    result = 'lose';
+                }
+            }
+            
+            playFlash(document.body, result);
+            playParticles(centerX, centerY, colors[result], 25);
+        }
+
+        function playJokerEffect(x, y) {
+            playShake(document.getElementById('gameContainer'));
+            playExplosion(x, y);
+            playParticles(x, y, 'var(--neon-lime)', 30);
+        }
+    </script>
+</body>
+</html>
