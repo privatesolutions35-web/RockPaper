@@ -1,8 +1,10 @@
 services:
-  - type: static
-    name: knb-game
-    buildCommand: ""
-    publishDir: .
+  - type: web
+    name: rps-server
+    env: node
+    region: oregon
+    buildCommand: npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_VERSION
         value: "18"
