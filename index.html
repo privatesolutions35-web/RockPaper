@@ -1370,12 +1370,24 @@
             document.getElementById('waitingScreen').classList.add('active');
             document.getElementById('gameCode').textContent = gameCode;
             document.getElementById('waitingText').textContent = 'Game Code:';
-            document.querySelector('.waiting-subtext').textContent = 'Share this code with a friend';
+            document.querySelector('.waiting-subtext').textContent = 'Testing connection...';
             
             isHost = true;
             connectionStatus = 'creating';
-            document.querySelector('.waiting-subtext').textContent = 'Connecting to server...';
             
+            // Test connectivity first
+            fetch('https://peerjs.com/peerserver.js', { mode: 'no-cors' })
+                .then(() => {
+                    document.querySelector('.waiting-subtext').textContent = 'Connecting to server...';
+                    createPeerConnection(gameCode);
+                })
+                .catch(() => {
+                    document.querySelector('.waiting-subtext').textContent = 'Testing alternative...';
+                    setTimeout(() => createPeerConnection(gameCode), 500);
+                });
+        }
+
+        function createPeerConnection(gameCode) {
             peer = new Peer('knb-' + gameCode, {
                 debug: 0,
                 config: {
@@ -1401,13 +1413,26 @@
             
             peer.on('error', (err) => {
                 console.error('Peer error:', err);
-                let errorMsg = 'Connection failed';
-                if (err.type === 'network') errorMsg = 'No internet connection';
-                else if (err.type === 'peer-unavailable') errorMsg = 'Game code not found';
-                else if (err.type === 'unavailable-id') errorMsg = 'Game already exists, try again';
-                else if (err.type === 'socket-error') errorMsg = 'Server error, try again';
-                alert(errorMsg);
-                cancelOnline();
+                console.error('Error details:', err.message);
+                let errorMsg = 'Cannot connect to server';
+                
+                if (err.type === 'network') {
+                    errorMsg = 'Check your internet connection';
+                } else if (err.type === 'peer-unavailable') {
+                    errorMsg = 'Game not found. Check the code.';
+                } else if (err.type === 'unavailable-id') {
+                    errorMsg = 'Game already exists, try again';
+                } else if (err.type === 'socket-error' || err.type === 'server-error') {
+                    errorMsg = 'Server busy, try again in a moment';
+                } else if (err.message && err.message.includes('WebSocket')) {
+                    errorMsg = 'Connection blocked. Try using HTTPS.';
+                }
+                
+                document.querySelector('.waiting-subtext').textContent = 'Error: ' + errorMsg;
+                setTimeout(() => {
+                    alert(errorMsg);
+                    cancelOnline();
+                }, 1000);
             });
         }
 
@@ -1429,6 +1454,8 @@
             
             peer = new Peer({
                 debug: 0,
+                port: 443,
+                secure: true,
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
@@ -1447,10 +1474,18 @@
             
             peer.on('error', (err) => {
                 console.error('Peer error:', err);
-                let errorMsg = 'Connection failed';
-                if (err.type === 'network') errorMsg = 'No internet connection';
-                else if (err.type === 'peer-unavailable') errorMsg = 'Game not found. Check the code.';
-                else if (err.type === 'socket-error') errorMsg = 'Server error, try again';
+                let errorMsg = 'Cannot connect to server';
+                
+                if (err.type === 'network') {
+                    errorMsg = 'Check your internet connection';
+                } else if (err.type === 'peer-unavailable') {
+                    errorMsg = 'Game not found. Check the code.';
+                } else if (err.type === 'socket-error') {
+                    errorMsg = 'Server busy, try again';
+                } else if (err.message && err.message.includes('WebSocket')) {
+                    errorMsg = 'Connection blocked. Use HTTPS.';
+                }
+                
                 alert(errorMsg);
                 cancelOnline();
             });
