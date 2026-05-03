@@ -1374,14 +1374,22 @@
             
             isHost = true;
             connectionStatus = 'creating';
+            document.querySelector('.waiting-subtext').textContent = 'Connecting to server...';
             
             peer = new Peer('knb-' + gameCode, {
-                debug: 1
+                debug: 0,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
             });
             
             peer.on('open', (id) => {
                 console.log('Created game with ID:', id);
                 connectionStatus = 'waiting';
+                document.querySelector('.waiting-subtext').textContent = 'Share this code with a friend';
             });
             
             peer.on('connection', (connection) => {
@@ -1393,7 +1401,12 @@
             
             peer.on('error', (err) => {
                 console.error('Peer error:', err);
-                alert('Connection error: ' + err.type);
+                let errorMsg = 'Connection failed';
+                if (err.type === 'network') errorMsg = 'No internet connection';
+                else if (err.type === 'peer-unavailable') errorMsg = 'Game code not found';
+                else if (err.type === 'unavailable-id') errorMsg = 'Game already exists, try again';
+                else if (err.type === 'socket-error') errorMsg = 'Server error, try again';
+                alert(errorMsg);
                 cancelOnline();
             });
         }
@@ -1415,7 +1428,13 @@
             connectionStatus = 'connecting';
             
             peer = new Peer({
-                debug: 1
+                debug: 0,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
             });
             
             peer.on('open', (id) => {
@@ -1428,7 +1447,11 @@
             
             peer.on('error', (err) => {
                 console.error('Peer error:', err);
-                alert('Connection error: ' + err.type);
+                let errorMsg = 'Connection failed';
+                if (err.type === 'network') errorMsg = 'No internet connection';
+                else if (err.type === 'peer-unavailable') errorMsg = 'Game not found. Check the code.';
+                else if (err.type === 'socket-error') errorMsg = 'Server error, try again';
+                alert(errorMsg);
                 cancelOnline();
             });
         }
