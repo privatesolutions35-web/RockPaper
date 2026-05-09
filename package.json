@@ -2,9 +2,8 @@
   "name": "rps-tactical-battle",
   "version": "1.0.0",
   "description": "RPS Tactical Battle - Online Multiplayer",
-  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.cjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
