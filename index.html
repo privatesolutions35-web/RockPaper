@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tactical RPS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1338,11 +1338,11 @@
             return newArray;
         }
 
-        function showRules() {
+        window.showRules = function() {
             document.getElementById('rulesModal').classList.add('active');
         }
 
-        function closeRules() {
+        window.closeRules = function() {
             document.getElementById('rulesModal').classList.remove('active');
         }
 
@@ -1352,12 +1352,12 @@
             ? 'http://localhost:3000' 
             : 'https://rockpaper-k55z.onrender.com';
 
-        function showOnlineMenu() {
+        window.showOnlineMenu = function() {
             document.getElementById('menuScreen').classList.remove('active');
             document.getElementById('onlineMenu').classList.add('active');
         }
 
-        function backToMenu() {
+        window.backToMenu = function() {
             if (socket) {
                 socket.disconnect();
                 socket = null;
@@ -1703,7 +1703,7 @@
             }, 2000);
         }
 
-        function startGame(mode = 'bot') {
+        window.startGame = function(mode = 'bot') {
             gameMode = mode;
             playerDeck = generateDeck();
             enemyDeck = generateDeck();
