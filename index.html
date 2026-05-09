@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="connect-src * wss: ws:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; img-src 'self' data:;">
     <title>Tactical RPS</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1311,10 +1312,10 @@
         let p2ReshuffleUsed = false;
         
         // Online multiplayer
-        let peer = null;
-        let conn = null;
+        let socket = null;
         let isHost = false;
-        let onlinePlayerId = null;
+        let playerNumber = 0;
+        let roomCode = '';
         let connectionStatus = '';
 
         function generateDeck() {
@@ -1343,13 +1344,22 @@
             document.getElementById('rulesModal').classList.remove('active');
         }
 
-        // Online Multiplayer Functions
+        // Online Multiplayer Functions (Socket.IO)
+        // REPLACE 'your-server-url.onrender.com' WITH YOUR ACTUAL SERVER URL
+        const SERVER_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : 'https://rockpaper-k55z.onrender.com';
+
         function showOnlineMenu() {
             document.getElementById('menuScreen').classList.remove('active');
             document.getElementById('onlineMenu').classList.add('active');
         }
 
         function backToMenu() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
             document.getElementById('onlineMenu').classList.remove('active');
             document.getElementById('waitingScreen').classList.remove('active');
             document.getElementById('menuScreen').classList.add('active');
@@ -1370,69 +1380,36 @@
             document.getElementById('waitingScreen').classList.add('active');
             document.getElementById('gameCode').textContent = gameCode;
             document.getElementById('waitingText').textContent = 'Game Code:';
-            document.querySelector('.waiting-subtext').textContent = 'Testing connection...';
+            document.querySelector('.waiting-subtext').textContent = 'Connecting...';
             
             isHost = true;
-            connectionStatus = 'creating';
+            playerNumber = 1;
+            roomCode = gameCode;
             
-            // Test connectivity first
-            fetch('https://peerjs.com/peerserver.js', { mode: 'no-cors' })
-                .then(() => {
-                    document.querySelector('.waiting-subtext').textContent = 'Connecting to server...';
-                    createPeerConnection(gameCode);
-                })
-                .catch(() => {
-                    document.querySelector('.waiting-subtext').textContent = 'Testing alternative...';
-                    setTimeout(() => createPeerConnection(gameCode), 500);
-                });
-        }
-
-        function createPeerConnection(gameCode) {
-            peer = new Peer('knb-' + gameCode, {
-                debug: 0,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                }
+            socket = io(SERVER_URL, {
+                transports: ['polling'],
+                withCredentials: false
             });
             
-            peer.on('open', (id) => {
-                console.log('Created game with ID:', id);
-                connectionStatus = 'waiting';
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                socket.emit('createRoom', gameCode);
+            });
+            
+            socket.on('roomCreated', () => {
+                console.log('Room created:', gameCode);
                 document.querySelector('.waiting-subtext').textContent = 'Share this code with a friend';
             });
             
-            peer.on('connection', (connection) => {
-                conn = connection;
-                setupConnection();
+            socket.on('playerJoined', (data) => {
+                console.log('Player joined!', data);
                 document.querySelector('.waiting-subtext').textContent = 'Player connected! Starting game...';
-                connectionStatus = 'connected';
+                setTimeout(() => startOnlineGame(true), 1000);
             });
             
-            peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                console.error('Error details:', err.message);
-                let errorMsg = 'Cannot connect to server';
-                
-                if (err.type === 'network') {
-                    errorMsg = 'Check your internet connection';
-                } else if (err.type === 'peer-unavailable') {
-                    errorMsg = 'Game not found. Check the code.';
-                } else if (err.type === 'unavailable-id') {
-                    errorMsg = 'Game already exists, try again';
-                } else if (err.type === 'socket-error' || err.type === 'server-error') {
-                    errorMsg = 'Server busy, try again in a moment';
-                } else if (err.message && err.message.includes('WebSocket')) {
-                    errorMsg = 'Connection blocked. Try using HTTPS.';
-                }
-                
-                document.querySelector('.waiting-subtext').textContent = 'Error: ' + errorMsg;
-                setTimeout(() => {
-                    alert(errorMsg);
-                    cancelOnline();
-                }, 1000);
+            socket.on('connect_error', (err) => {
+                alert('Cannot connect to server. Make sure server is running.');
+                backToMenu();
             });
         }
 
@@ -1446,112 +1423,103 @@
             document.getElementById('onlineMenu').classList.remove('active');
             document.getElementById('waitingScreen').classList.add('active');
             document.getElementById('gameCode').textContent = gameCode;
-            document.getElementById('waitingText').textContent = 'Connecting to game...';
+            document.getElementById('waitingText').textContent = 'Connecting...';
             document.querySelector('.waiting-subtext').textContent = 'Code: ' + gameCode;
             
             isHost = false;
-            connectionStatus = 'connecting';
+            playerNumber = 2;
+            roomCode = gameCode;
             
-            peer = new Peer({
-                debug: 0,
-                port: 443,
-                secure: true,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                }
+            socket = io(SERVER_URL, {
+                transports: ['polling'],
+                withCredentials: false
             });
             
-            peer.on('open', (id) => {
-                console.log('Connected to peer server, joining game:', 'knb-' + gameCode);
-                conn = peer.connect('knb-' + gameCode, {
-                    reliable: true
-                });
-                setupConnection();
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                socket.emit('joinRoom', gameCode);
             });
             
-            peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                let errorMsg = 'Cannot connect to server';
-                
-                if (err.type === 'network') {
-                    errorMsg = 'Check your internet connection';
-                } else if (err.type === 'peer-unavailable') {
-                    errorMsg = 'Game not found. Check the code.';
-                } else if (err.type === 'socket-error') {
-                    errorMsg = 'Server busy, try again';
-                } else if (err.message && err.message.includes('WebSocket')) {
-                    errorMsg = 'Connection blocked. Use HTTPS.';
-                }
-                
-                alert(errorMsg);
-                cancelOnline();
-            });
-        }
-
-        function setupConnection() {
-            conn.on('open', () => {
-                console.log('Connection established');
-                if (!isHost) {
-                    startOnlineGame(false);
-                }
+            socket.on('playerJoined', (data) => {
+                console.log('Joined as player', data.playerNumber);
+                document.querySelector('.waiting-subtext').textContent = 'Connected! Waiting for host...';
             });
             
-            conn.on('data', (data) => {
+            socket.on('roomError', (data) => {
+                alert(data.message);
+                backToMenu();
+            });
+            
+            socket.on('gameAction', (data) => {
                 handleOnlineMessage(data);
             });
             
-            conn.on('close', () => {
-                alert('Connection lost!');
-                cancelOnline();
+            socket.on('playerDisconnected', () => {
+                alert('Opponent disconnected!');
+                backToMenu();
             });
+            
+            socket.on('connect_error', (err) => {
+                alert('Cannot connect to server. Make sure server is running.');
+                backToMenu();
+            });
+        }
+
+        function sendOnlineData(data) {
+            if (socket && socket.connected) {
+                socket.emit('gameAction', data);
+            }
+        }
+
+        function cancelOnline() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+            backToMenu();
         }
 
         function handleOnlineMessage(data) {
             console.log('Received:', data);
             
             switch(data.type) {
-                case 'start':
+                case 'gameStart':
                     playerHand = data.playerHand;
                     enemyHand = data.enemyHand;
                     playerScore = 0;
                     enemyScore = 0;
                     currentRound = 1;
-                    currentTurn = 1;
-                    startOnlineGame(true);
+                    currentTurn = data.currentTurn || 1;
+                    startOnlineGame(false);
                     break;
                     
-                case 'playCard':
-                    handleRemoteCardPlay(data.cardIndex, data.cardType);
+                case 'cardPlayed':
+                    enemyHand.splice(data.cardIndex, 1);
+                    if (currentTurn === 2) currentTurn = 1;
+                    else currentTurn = 2;
+                    updateTurnIndicator();
                     break;
                     
-                case 'scouting':
-                    p2ScoutingUsed = true;
-                    updateUI();
-                    break;
-                    
-                case 'reshuffle':
-                    p2ReshuffleUsed = true;
-                    enemyHand = data.newHand;
-                    updateUI();
-                    break;
-                    
-                case 'score':
+                case 'scoreUpdate':
                     playerScore = data.playerScore;
                     enemyScore = data.enemyScore;
-                    currentRound = data.currentRound;
-                    currentTurn = data.currentTurn;
                     playerHand = data.playerHand;
                     enemyHand = data.enemyHand;
+                    currentRound = data.currentRound;
+                    currentTurn = data.currentTurn;
                     playerStreak = data.playerStreak;
                     enemyStreak = data.enemyStreak;
-                    p2ScoutingUsed = data.p2ScoutingUsed;
-                    p2ReshuffleUsed = data.p2ReshuffleUsed;
                     updateUI();
                     renderPlayerHand();
                     break;
+                    
+                case 'gameOver':
+                    playerScore = data.playerScore;
+                    enemyScore = data.enemyScore;
+                    showGameOver();
+                    break;
+            }
+        }
                     
                 case 'gameOver':
                     playerScore = data.playerScore;
@@ -1595,33 +1563,6 @@
             updateUI();
             updateTurnIndicator();
             renderPlayerHand();
-        }
-
-        function handleRemoteCardPlay(cardIndex, cardType) {
-            enemyHand.splice(cardIndex, 1);
-            isProcessing = false;
-            
-            if (gameMode === 'online' && currentTurn === 1) {
-                currentTurn = 2;
-                updateTurnIndicator();
-            }
-        }
-
-        function sendOnlineData(data) {
-            if (conn && conn.open) {
-                conn.send(data);
-            }
-        }
-
-        function cancelOnline() {
-            if (peer) {
-                peer.destroy();
-                peer = null;
-            }
-            conn = null;
-            document.getElementById('waitingScreen').classList.remove('active');
-            document.getElementById('onlineMenu').classList.add('active');
-            document.getElementById('gameCodeInput').value = '';
         }
 
         // Override playRound for online
