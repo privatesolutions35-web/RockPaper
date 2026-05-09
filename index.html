@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tactical RPS</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1069,28 +1068,6 @@
     </style>
 </head>
 <body>
-    <!-- Audio Elements -->
-    <audio id="bgMusic" loop preload="auto">
-        <source src="https://cdn.pixabay.com/audio/2022/10/25/audio_946a3d9b42.mp3" type="audio/mp3">
-    </audio>
-    <audio id="cardDealSound" preload="auto">
-        <source src="https://cdn.pixabay.com/audio/2021/08/09/audio_60a57e2e2e.mp3" type="audio/mp3">
-    </audio>
-    <audio id="winSound" preload="auto">
-        <source src="https://cdn.pixabay.com/audio/2022/03/10/audio_6fd18a1df2.mp3" type="audio/mp3">
-    </audio>
-    <audio id="loseSound" preload="auto">
-        <source src="https://cdn.pixabay.com/audio/2022/02/07/audio_5d1e9f0b14.mp3" type="audio/mp3">
-    </audio>
-    <audio id="drawSound" preload="auto">
-        <source src="https://cdn.pixabay.com/audio/2021/08/04/audio_0625b15310.mp3" type="audio/mp3">
-    </audio>
-    <audio id="victoryMusic" preload="auto">
-        <source src="https://cdn.pixabay.com/audio/2024/11/04/audio_e033a5a7d4.mp3" type="audio/mp3">
-    </audio>
-    <audio id="defeatMusic" preload="auto">
-        <source src="https://cdn.pixabay.com/audio/2022/01/18/audio_acf8d0d2a6.mp3" type="audio/mp3">
-    </audio>
 
     <div id="gameContainer">
         <!-- Main Menu -->
@@ -1099,8 +1076,8 @@
             <p class="subtitle">Tactical Battle</p>
             <p class="mode-label">SELECT MODE</p>
             <button class="neon-btn" id="startBotBtn">🤖 VS BOT</button>
-            <button class="neon-btn" onclick="showOnlineMenu()" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">🌐 ONLINE</button>
-            <button class="neon-btn" onclick="showRules()" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">📖 RULES</button>
+            <button class="neon-btn" id="startOnlineBtn" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">🌐 ONLINE</button>
+            <button class="neon-btn" id="rulesBtn">📖 RULES</button>
             <div class="audio-controls">
                 <button class="audio-btn" id="musicToggle" onclick="toggleMusic()">🎵 MUSIC: ON</button>
                 <button class="audio-btn" id="soundToggle" onclick="toggleSound()">🔊 SOUND: ON</button>
@@ -1117,7 +1094,7 @@
                     <input type="text" id="gameCodeInput" class="code-input" placeholder="Enter game code" maxlength="6">
                     <button class="neon-btn" onclick="joinOnlineGame()" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">JOIN</button>
                 </div>
-                <button class="neon-btn" onclick="backToMenu()" style="border-color: var(--neon-cyan); color: var(--neon-cyan); margin-top: 20px;">BACK</button>
+                <button class="neon-btn" id="backBtn" style="border-color: var(--neon-cyan); color: var(--neon-cyan); margin-top: 20px;">BACK</button>
             </div>
         </div>
 
@@ -1287,8 +1264,38 @@
     </div>
 
     <script>
-        try {
-        console.log('Game script loaded');
+        console.log('Script starting...');
+        
+        // Audio functions (dummy)
+        function playSound(id) { console.log('Play:', id); }
+        function playCardDeal() { console.log('Card deal'); }
+        function playWinRound() { console.log('Win'); }
+        function playLoseRound() { console.log('Lose'); }
+        function playDrawRound() { console.log('Draw'); }
+        function playVictory() { console.log('Victory'); }
+        function playDefeat() { console.log('Defeat'); }
+        
+        // Button handlers - bind immediately
+        window.onload = function() {
+            console.log('Window loaded');
+            document.getElementById('startBotBtn').onclick = function() { 
+                console.log('Bot clicked'); 
+                startGame('bot'); 
+            };
+            document.getElementById('startOnlineBtn').onclick = function() { 
+                console.log('Online clicked'); 
+                showOnlineMenu(); 
+            };
+            document.getElementById('rulesBtn').onclick = function() { 
+                console.log('Rules clicked'); 
+                showRules(); 
+            };
+            document.getElementById('backBtn').onclick = function() { 
+                backToMenu(); 
+            };
+        };
+        
+        const CARD_TYPES = ['rock', 'scissors', 'paper'];
         
         const CARD_TYPES = ['rock', 'scissors', 'paper'];
         const CARD_ICONS = { rock: '🪨', scissors: '✂️', paper: '📄', joker: '🎭' };
