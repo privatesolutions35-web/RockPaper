@@ -1287,17 +1287,8 @@
     </div>
 
     <script>
+        try {
         console.log('Game script loaded');
-        
-        // Add button handlers after DOM loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM ready');
-            
-            document.getElementById('startBotBtn').addEventListener('click', function() {
-                console.log('VS BOT clicked');
-                startGame('bot');
-            });
-        });
         
         const CARD_TYPES = ['rock', 'scissors', 'paper'];
         const CARD_ICONS = { rock: '🪨', scissors: '✂️', paper: '📄', joker: '🎭' };
@@ -2541,6 +2532,10 @@
             playShake(document.getElementById('gameContainer'));
             playExplosion(x, y);
             playParticles(x, y, 'var(--neon-lime)', 30);
+        }
+        } catch(e) {
+            console.error('Script error:', e);
+            alert('Script error: ' + e.message);
         }
     </script>
 </body>
