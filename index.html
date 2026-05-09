@@ -1098,7 +1098,7 @@
             <h1 class="title">RPS</h1>
             <p class="subtitle">Tactical Battle</p>
             <p class="mode-label">SELECT MODE</p>
-            <button class="neon-btn" onclick="startGame('bot')">🤖 VS BOT</button>
+            <button class="neon-btn" id="startBotBtn">🤖 VS BOT</button>
             <button class="neon-btn" onclick="showOnlineMenu()" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">🌐 ONLINE</button>
             <button class="neon-btn" onclick="showRules()" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">📖 RULES</button>
             <div class="audio-controls">
@@ -1287,6 +1287,18 @@
     </div>
 
     <script>
+        console.log('Game script loaded');
+        
+        // Add button handlers after DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM ready');
+            
+            document.getElementById('startBotBtn').addEventListener('click', function() {
+                console.log('VS BOT clicked');
+                startGame('bot');
+            });
+        });
+        
         const CARD_TYPES = ['rock', 'scissors', 'paper'];
         const CARD_ICONS = { rock: '🪨', scissors: '✂️', paper: '📄', joker: '🎭' };
         const CARD_LABELS = { rock: 'ROCK', scissors: 'SCISSORS', paper: 'PAPER', joker: 'JOKER' };
